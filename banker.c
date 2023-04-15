@@ -101,7 +101,7 @@ int get_all_acc(account **accounts)
 {
     account acc;
     FILE *infile;
-    int i=0;
+    int i = 0;
     // TODO: Entering CS
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
@@ -122,7 +122,7 @@ int set_all_acc(account **accounts)
 {
     account acc;
     FILE *infile;
-    int i=0;
+    int i = 0;
     // TODO: Entering CS
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
