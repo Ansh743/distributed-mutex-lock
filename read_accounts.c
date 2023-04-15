@@ -29,10 +29,28 @@ int main(int argc, char const *argv[])
     account acc;
     FILE *infile;
     infile = fopen(ACCOUNTS_FILE, "rb");
-    while (fread(&acc, sizeof(acc), 1, infile))
+
+    if (infile == NULL)
     {
-        acc_details(&acc);
+        printf("Error: cannot open file %s\n", ACCOUNTS_FILE);
+        exit(1);
     }
+
+    account accounts[100];  // create an array to store up to 100 accounts
+    int count = 0;
+
+    while (fread(&acc, sizeof(account), 1, infile))
+    {
+        accounts[count] = acc;  // store the account in the array
+        count++;
+    }
+
     fclose(infile);
+
+    for (int i = 0; i < count; i++)
+    {
+        acc_details(&accounts[i]);  
+    }
+
     return 0;
 }

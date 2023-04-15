@@ -160,7 +160,7 @@ int create_account()
     acc.id = gen_id();
 
     // TODO: Entering CS
-    infile = fopen(ACCOUNTS_FILE, "wb+");
+    infile = fopen(ACCOUNTS_FILE, "ab+");
     if (infile == NULL)
     {
         fprintf(stderr, "\nError opening file\n");
@@ -185,7 +185,6 @@ int acc_details(account *acc)
 
 int transfer()
 {
-    lock();
     return 0;
 }
 int withdraw()
