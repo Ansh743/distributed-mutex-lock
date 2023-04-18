@@ -226,6 +226,70 @@ int create_account()
 
 int transfer()
 {
+    account acc;
+    FILE *infile;
+    int i = 0, j = 0, transfer_from_i = -1, transfer_to_i = -1, bal_flag = 0;
+
+    float amount = 0.0;
+    char name[20];
+    printf("Enter amount to transfer: ");
+    scanf("%f", &amount);
+    printf("Enter username to transfer: ");
+    scanf("%s", name);
+    // TODO: Entering CS
+    infile = fopen(ACCOUNTS_FILE, "rb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return -1;
+    }
+    while (fread(&acc, sizeof(acc), 1, infile) && i < N_ACCOUNTS)
+    {
+        if (strcmp(acc.name, name) == 0)
+        {
+            transfer_to_i = i;
+        }
+        if (strcmp(acc.name, curr_acc->name) == 0 && strcmp(acc.password, curr_acc->password) == 0)
+        {
+            transfer_from_i = i;
+        }
+        all_accs[i++] = acc;
+    }
+    fclose(infile);
+
+    if (transfer_to_i == -1)
+    {
+        printf("Username not found!\n");
+        sleep(3);
+        return -1;
+    }
+
+    if (all_accs[transfer_from_i].balance - amount < 0)
+    {
+        printf("Insufficient Funds!\n");
+        sleep(3);
+        return -1;
+    }
+    else
+    {
+        all_accs[transfer_from_i].balance -= amount;
+        all_accs[transfer_to_i].balance += amount;
+    }
+
+    infile = fopen(ACCOUNTS_FILE, "wb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return 1;
+    }
+
+    for (j = 0; j < i; j++)
+    {
+        fwrite(&all_accs[j], sizeof(account), 1, infile);
+    }
+
+    fclose(infile);
+    // TODO: Exiting CS
     return 0;
 }
 int withdraw()
@@ -247,7 +311,7 @@ int withdraw()
     {
         if (strcmp(acc.name, curr_acc->name) == 0 && strcmp(acc.password, curr_acc->password) == 0)
         {
-            if(acc.balance -  amount >= 0)
+            if (acc.balance - amount >= 0)
             {
                 acc.balance -= amount;
                 done = 1;
@@ -270,7 +334,7 @@ int withdraw()
 
     fclose(infile);
     // TODO: Exiting CS
-    if(done == 1)
+    if (done == 1)
         printf("Withdraw successful!\n");
     else
         printf("Not enough balance!\n");
