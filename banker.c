@@ -230,7 +230,52 @@ int transfer()
 }
 int withdraw()
 {
-    return 0;
+    account acc;
+    FILE *infile;
+    int i = 0, j = 0, done = 0;
+    float amount = 0.0;
+    printf("Enter amount to withdraw: ");
+    scanf("%f", &amount);
+    // TODO: Entering CS
+    infile = fopen(ACCOUNTS_FILE, "rb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return -1;
+    }
+    while (fread(&acc, sizeof(acc), 1, infile) && i < N_ACCOUNTS)
+    {
+        if (strcmp(acc.name, curr_acc->name) == 0 && strcmp(acc.password, curr_acc->password) == 0)
+        {
+            if(acc.balance -  amount >= 0)
+            {
+                acc.balance -= amount;
+                done = 1;
+            }
+        }
+        all_accs[i++] = acc;
+    }
+    fclose(infile);
+    infile = fopen(ACCOUNTS_FILE, "wb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return -1;
+    }
+
+    for (j = 0; j < i; j++)
+    {
+        fwrite(&all_accs[j], sizeof(account), 1, infile);
+    }
+
+    fclose(infile);
+    // TODO: Exiting CS
+    if(done == 1)
+        printf("Withdraw successful!\n");
+    else
+        printf("Not enough balance!\n");
+    sleep(2);
+    return done;
 }
 int deposit()
 {
@@ -337,7 +382,9 @@ int login()
         if (choice == 1)
             transfer();
         else if (choice == 2)
+        {
             withdraw();
+        }
         else if (choice == 3)
             deposit();
         else if (choice == 0)
