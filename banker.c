@@ -17,10 +17,45 @@ typedef struct account
     float balance;
 } account;
 
-int logged_in = 0;
-account *acc_curr;
+static unsigned short logged_in = 0, num_accounts = 0;
+account *curr_acc;
 account all_accs[N_ACCOUNTS];
 
+int refresh_curr_acc()
+{
+    if (curr_acc == NULL)
+        return -1;
+    account acc;
+    FILE *infile;
+    // TODO: Entering CS
+    infile = fopen(ACCOUNTS_FILE, "rb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return -1;
+    }
+    while (fread(&acc, sizeof(acc), 1, infile))
+    {
+        if (strcmp(acc.name, curr_acc->name) == 0 && strcmp(acc.password, curr_acc->password) == 0)
+        {
+            curr_acc->balance = acc.balance;
+            break;
+        }
+    }
+    fclose(infile);
+    // TODO: Exiting CS
+
+    return 0;
+}
+
+int acc_details(account *acc)
+{
+
+    printf("Name(ID): %s(%ld)\n", acc->name, acc->id);
+    printf("Password: %s\n", acc->password);
+    printf("Balance: %f\n", acc->balance);
+    return 0;
+}
 void clear_screen()
 {
 #ifdef _WIN32
@@ -32,18 +67,16 @@ void clear_screen()
 
 int check_file(char *f)
 {
-    FILE *fp;
+    FILE *infile;
 
-    if ((fp = fopen(f, "r")) == NULL)
+    if ((infile = fopen(f, "r")) == NULL)
     {
         // file doesn't exist, create it
-        fp = fopen(f, "w");
+        infile = fopen(f, "w");
     }
-    else
-    {
-        // file exists
-        fclose(fp);
-    }
+
+    // file exists
+    fclose(infile);
 
     return 0;
 }
@@ -65,8 +98,9 @@ int login_loop()
 {
     int choice;
     clear_screen();
-    printf("Hello, %s\n", acc_curr->name);
-    printf("Current balance: %f\n", acc_curr->balance);
+    refresh_curr_acc();
+    printf("Hello, %s\n", curr_acc->name);
+    printf("Current balance: %f\n", curr_acc->balance);
     printf("\t1. Transfer money\n");
     printf("\t2. Withdraw\n");
     printf("\t3. Deposit\n");
@@ -97,7 +131,7 @@ u_long gen_id()
     return res;
 }
 
-int get_all_acc(account **accounts)
+int get_all_acc(account *accounts[])
 {
     account acc;
     FILE *infile;
@@ -115,6 +149,7 @@ int get_all_acc(account **accounts)
     }
     fclose(infile);
     // TODO: Exiting CS
+    num_accounts = i;
     return i;
 }
 
@@ -124,19 +159,33 @@ int set_all_acc(account **accounts)
     FILE *infile;
     int i = 0;
     // TODO: Entering CS
-    infile = fopen(ACCOUNTS_FILE, "rb+");
+    infile = fopen(ACCOUNTS_FILE, "wb+");
     if (infile == NULL)
     {
         fprintf(stderr, "\nError opening file\n");
         return 1;
     }
 
-    while (fread(&acc, sizeof(acc), 1, infile) && i < N_ACCOUNTS)
+    for (i = 0; i < num_accounts; i++)
     {
-        accounts[i++] = &acc;
+        fwrite(&accounts[i], sizeof(account), 1, infile);
     }
+
     fclose(infile);
     // TODO: Exiting CS
+    return 0;
+}
+
+int print_all_accounts(account **accounts)
+{
+    account acc;
+    int i = 0;
+
+    for (i = 0; i < num_accounts; i++)
+    {
+        acc_details(accounts[i]);
+    }
+
     return 0;
 }
 
@@ -171,15 +220,7 @@ int create_account()
     fclose(infile);
     // TODO: Exiting CS
     printf("Account Created\n");
-    sleep(3);
-    return 0;
-}
-
-int acc_details(account *acc)
-{
-
-    printf("Name(ID): %s(%ld)\n", acc->name, acc->id);
-    printf("Balance: %f\n", acc->balance);
+    sleep(2);
     return 0;
 }
 
@@ -193,11 +234,49 @@ int withdraw()
 }
 int deposit()
 {
+    account acc;
+    FILE *infile;
+    int i = 0, j = 0;
+    float amount = 0.0;
+    printf("Enter amount to deposit: ");
+    scanf("%f", &amount);
+    // TODO: Entering CS
+    infile = fopen(ACCOUNTS_FILE, "rb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        sleep(3);
+
+        return -1;
+    }
+    while (fread(&acc, sizeof(acc), 1, infile) && i < N_ACCOUNTS)
+    {
+        if (strcmp(acc.name, curr_acc->name) == 0 && strcmp(acc.password, curr_acc->password) == 0)
+        {
+            acc.balance += amount;
+        }
+        all_accs[i++] = acc;
+    }
+    fclose(infile);
+    infile = fopen(ACCOUNTS_FILE, "wb+");
+    if (infile == NULL)
+    {
+        fprintf(stderr, "\nError opening file\n");
+        return 1;
+    }
+
+    for (j = 0; j < i; j++)
+    {
+        fwrite(&all_accs[j], sizeof(account), 1, infile);
+    }
+
+    fclose(infile);
+    // TODO: Exiting CS
     return 0;
 }
 int logout()
 {
-    acc_curr = (void *)NULL;
+    curr_acc = (void *)NULL;
     logged_in = 0;
     return 0;
 }
@@ -205,7 +284,9 @@ int logout()
 int login()
 {
     account acc;
+    account *all_accs_ptr = all_accs;
     FILE *infile;
+    unsigned short i;
     char name[20], password[20];
     printf("Logging into account\n");
     fflush(stdout);
@@ -232,8 +313,10 @@ int login()
         if (strcmp(name, acc.name) == 0 && strcmp(password, acc.password) == 0)
         {
             logged_in = 1;
-            acc_curr = &acc;
+            curr_acc = &acc;
             printf("Logged in to %s account\n", name);
+            sleep(3);
+            clear_screen();
             break;
         }
     }
@@ -247,8 +330,6 @@ int login()
 
     fclose(infile);
     // TODO: Exiting CS
-    sleep(3);
-    clear_screen();
 
     int choice;
     while ((choice = login_loop()) != 0)
@@ -271,9 +352,9 @@ int login()
 
 void handle_sigint(int sig)
 {
-    if (acc_curr != NULL)
+    if (curr_acc != NULL)
     {
-        free(acc_curr);
+        free(curr_acc);
     }
     exit(0);
 }
@@ -297,6 +378,6 @@ int main()
     }
 
     // if (logged_in == 1)
-    //     free(acc_curr);
+    //     free(curr_acc);
     return 0;
 }
