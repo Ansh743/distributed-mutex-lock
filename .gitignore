@@ -1,5 +1,8 @@
+*
+!/**/
+!*.*
 .vscode
 *.dat
-banker
-read
 *.nfs*
+*.o
+*.out
