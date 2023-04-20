@@ -1,8 +1,12 @@
 *
 !/**/
 !*.*
+*
+!/**/
+!*.*
 .vscode
 *.dat
 *.nfs*
 *.o
 *.out
+!Makefile
