@@ -3,9 +3,9 @@
 int main(int argc,char** argv)
 
 {
-    int socket_fd, cc;
+    int socket_fd, cc, fsize;
     long getpid();
-    struct sockaddr_in dest;
+    struct sockaddr_in dest, from;
     struct hostent *gethostbyname(), *hostptr;
 
     msg_pkt packet;
@@ -43,7 +43,7 @@ int main(int argc,char** argv)
     bcopy(hostptr->h_addr_list[0], (char *)&dest.sin_addr, hostptr->h_length);
     dest.sin_port = htons((u_short)PORT);
 
-    packet.type = 1;
+    packet.type = HELLO;
 
     cc = sendto(socket_fd, &packet, sizeof(packet), 0, (struct sockaddr *)&dest,
                 sizeof(dest));
@@ -53,5 +53,13 @@ int main(int argc,char** argv)
         exit(1);
     }
 
+    for (;;)
+    {
+        fsize = sizeof(from);
+        cc = recvfrom(socket_fd, &packet, sizeof(msg_pkt), 0, (struct sockaddr *)&from, &fsize);
+        if (cc < 0)
+            perror("recv_udp:recvfrom");
+        printf("From %d: packet type = %d\n", packet.hostid, packet.type);
+    }
     return (0);
 }

@@ -1,5 +1,7 @@
 #include "helper.h"
 
+
+
 int main()
 {
     int socket_fd, cc, fsize;
@@ -19,13 +21,6 @@ int main()
         exit(1);
     }
 
-    /*
-       In order to attach a name to the socket created above, first fill
-       in the appropriate blanks in an inet socket address data structure
-       called "s_in". We blindly pick port number 0x3333. The second step
-       is to BIND the address to the socket. If port 0x3333 is in use, the
-       bind system call will fail detectably.
-    */
 
     bzero((char *)&s_in, sizeof(s_in)); /* They say you must do this    */
 
@@ -48,6 +43,14 @@ int main()
         if (cc < 0)
             perror("recv_udp:recvfrom");
         printf("From %d: packet type = %d\n", packet.hostid, packet.type);
+        packet.type = HELLO_ACK;
+        cc = sendto(socket_fd, &packet, sizeof(packet), 0, (struct sockaddr *)&from,
+                    sizeof(from));
+        if (cc < 0)
+        {
+            perror("send_udp:sendto");
+            exit(1);
+        }
         fflush(stdout);
     }
     return (0);
