@@ -12,34 +12,46 @@
 #include <pthread.h>
 #include <ifaddrs.h>
 #include <unistd.h>
+#include <time.h>
+#include <semaphore.h>
 
-#define PORT 8080
-#define HELLO       1
-#define HELLO_ACK   2
-#define REQUEST     3
-#define REPLY       4
+#define PORT 8081
+#define HELLO 1
+#define HELLO_ACK 2
+#define REQUEST 3
+#define REPLY 4
 
 #define FILE_NAME "/process.hosts"
 #define MAX_STR_LEN 16
-#define NUM_HOSTS 10
+#define NUM_HOSTS 4
 
 typedef unsigned long int u_long;
 typedef unsigned short int u_short;
 
-
-typedef struct msg_packet {
-  unsigned short type; 
+typedef struct msg_packet
+{
+  unsigned short type;
   unsigned short seq;
-  unsigned int hostid; // this is optional because you can obtain the host (sender) information from the ip header, we add this fied for the convenience.
-  unsigned short vector_time[10]; // support upto to 10 hosts
+  unsigned int hostid;            // this is optional because you can obtain the host (sender) information from the ip header, we add this field for the convenience.
+  unsigned short vector_time[NUM_HOSTS]; // support upto to 10 hosts
 } msg_pkt;
 
-void printsin(struct sockaddr_in *sin, char *m1, char *m2);
+typedef struct ds_lock
+{
+  int socket_fd;
+  struct sockaddr_in s_in, from;
+  short unsigned should_listen;
+  char *file_name;
+  char *self_ip_addr;
+  char *ip_addrs[NUM_HOSTS];
+  unsigned short active_hosts;
+  int thread_ret;
+  sem_t semaphore;
+  int shared;
 
-/*
-  Get the `process.hosts` file name
-*/
-char* get_file_path();
+  pthread_t tid;
+} ds_lock;
 
-char *write_ip_to_file(char* filename);
-int read_ip_from_file(const char* filename, char** strings);
+int init(ds_lock *);
+int lock(ds_lock *);
+int destroy(ds_lock *);
