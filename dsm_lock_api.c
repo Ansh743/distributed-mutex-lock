@@ -184,9 +184,9 @@ void write_msg(char *msg, char *from, ds_lock *ds_lck)
     else
     {
         if (from == NULL)
-            fprintf(fp, "%s: %s\n", time_string, msg);
+            fprintf(fp, "%s: %d %s\n", time_string, ds_lck->lamport_clock, msg);
         else
-            fprintf(fp, "%s: %s %s\n", time_string, msg, from);
+            fprintf(fp, "%s: %d %s %s\n", time_string, ds_lck->lamport_clock, msg, from);
     }
     fclose(fp);
 }
@@ -221,8 +221,6 @@ void *network_thread(void *arg)
             write_msg("Received HELLO from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
             packet.type = HELLO_ACK;
 
-            write_msg("Sending HELLO_ACK to", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
-
             cc = sendto(ds_lck->socket_fd, &packet, sizeof(packet), 0, (struct sockaddr *)&(ds_lck->from),
                         sizeof(ds_lck->from));
 
@@ -243,12 +241,6 @@ void *network_thread(void *arg)
             strcat(str, str1);
 
             write_msg("Received HELLO_ACK", str, ds_lck);
-            if (count >= ds_lck->active_hosts - 1)
-            {
-                count = 0;
-                sem_post(&ds_lck->semaphore);
-                continue;
-            }
         }
 
         if (packet.type == REPLY)
@@ -300,7 +292,7 @@ void *network_thread(void *arg)
             if (packet.lamport_clock > ds_lck->lamport_clock)
                 ds_lck->lamport_clock = packet.lamport_clock;
 
-            write_msg("Received REQUEST from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
+            write_msg("Received REQUEST (not in CS & not requesting) from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
             packet.type = REPLY;
             write_msg("Sending REPLY to", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
 
@@ -327,6 +319,7 @@ void *network_thread(void *arg)
                 {
                     if (strcmp(ds_lck->ip_ids[i].ip, inet_ntoa(ds_lck->from.sin_addr)) == 0)
                     {
+                        write_msg("Received REQUEST (in requesting & C<m[timestamp]) from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
                         ds_lck->d_array[ds_lck->ip_ids[i].id] = 1;
                         break;
                     }
@@ -340,15 +333,14 @@ void *network_thread(void *arg)
             if (ds_lck->lamport_clock > packet.lamport_clock)
             {
                 // TODO: send REPLY
-                write_msg("Received REQUEST from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
+                write_msg("Received REQUEST (in requesting & C>m[timestamp]) from", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
                 packet.type = REPLY;
-                write_msg("Sending REPLY to", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
 
                 cc = sendto(ds_lck->socket_fd, &packet, sizeof(packet), 0, (struct sockaddr *)&(ds_lck->from), sizeof(ds_lck->from));
                 if (cc < 0)
                     perror("network_thread:sendto");
 
-                write_msg("Sent REPLY to", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
+                write_msg("sent REPLY to", inet_ntoa(ds_lck->from.sin_addr), ds_lck);
                 continue;
             }
         }
@@ -398,7 +390,7 @@ int setup_socket(ds_lock *ds_lck)
     return 0;
 }
 
-int  dsm_init(ds_lock *ds_lck)
+int dsm_init(ds_lock *ds_lck)
 {
     ds_lck->shared = 0;
     ds_lck->in_cs = 0;
@@ -442,7 +434,7 @@ int dsm_lock(ds_lock *ds_lck)
         if (strcmp(ds_lck->ip_ids[i].ip, ds_lck->self_ip_addr) != 0)
         {
             // printf("Sending HELLO to %d: %s\n", i, ds_lck->ip_addrs[i]);
-            write_msg("Sending REQUEST to", ds_lck->ip_addrs[i], ds_lck);
+            write_msg("Sending REQUEST to", ds_lck->ip_ids[i].ip, ds_lck);
             if ((hostptr = gethostbyname(ds_lck->ip_ids[i].ip)) == NULL)
             {
                 fprintf(stderr, "lock: invalid host name, %s\n", ds_lck->ip_ids[i].ip);
@@ -470,7 +462,7 @@ int dsm_lock(ds_lock *ds_lck)
     sem_wait(&ds_lck->semaphore);
     ds_lck->in_cs = 1;
     ds_lck->requesting = 0;
-    //CLOCK: Updating
+    // CLOCK: Updating
     ds_lck->lamport_clock += 1;
 
     return 0;
@@ -488,7 +480,7 @@ int dsm_unlock(ds_lock *ds_lck)
     dest.sin_port = htons((u_short)PORT);
 
     ds_lck->active_hosts = read_ip_from_file(ds_lck->file_name, ds_lck->ip_ids);
-    //CLOCK: Updating
+    // CLOCK: Updating
     ds_lck->lamport_clock += 1;
 
     // TODO: Check deferred array and send REPLY to pending processes
@@ -501,7 +493,7 @@ int dsm_unlock(ds_lock *ds_lck)
             if (strcmp(ds_lck->ip_ids[i].ip, ds_lck->self_ip_addr) != 0)
             {
                 // printf("Sending HELLO to %d: %s\n", i, ds_lck->ip_addrs[i]);
-                write_msg("Sending deferred REPLY to", ds_lck->ip_addrs[i], ds_lck);
+                write_msg("Sending deferred REPLY to", ds_lck->ip_ids[i].ip, ds_lck);
                 if ((hostptr = gethostbyname(ds_lck->ip_ids[i].ip)) == NULL)
                 {
                     fprintf(stderr, "lock: invalid host name, %s\n", ds_lck->ip_ids[i].ip);
