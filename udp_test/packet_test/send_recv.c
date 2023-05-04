@@ -8,6 +8,7 @@ int main()
 {
     ds_lock *ds_lck = malloc(sizeof(ds_lock));
     char op[4];
+    int i;
 
     init(ds_lck);
 
@@ -18,16 +19,20 @@ int main()
         if (strcmp("y\n", op) == 0)
         {
             lock(ds_lck);
-            printf("Alright!\n");
-
+            printf("Locked\n");
+            scanf("%d", &i);
+            printf("Unlocked\n");
+            unlock(ds_lck);
         }
+        else if(strcmp("n\n", op) == 0)
+            break;
         else
         {
-            destroy(ds_lck);
-            break;
+            printf("Okay\n");
         }
     }
-
     
+    destroy(ds_lck);
+
     return 0;
 }
