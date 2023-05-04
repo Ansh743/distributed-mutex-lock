@@ -4,6 +4,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "dsm_lock_api.h"
+
 #define u_long unsigned long int
 #define ID_LENGTH 10
 #define ACCOUNTS_FILE "accounts.dat"
@@ -21,13 +23,13 @@ static unsigned short logged_in = 0, num_accounts = 0;
 account *curr_acc;
 account all_accs[N_ACCOUNTS];
 
-int refresh_curr_acc()
+int refresh_curr_acc(ds_lock * ds_lck)
 {
     if (curr_acc == NULL)
         return -1;
     account acc;
     FILE *infile;
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -43,7 +45,7 @@ int refresh_curr_acc()
         }
     }
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
 
     return 0;
 }
@@ -94,11 +96,11 @@ int main_menu()
     return choice;
 }
 
-int login_loop()
+int login_loop(ds_lock * ds_lck)
 {
     int choice;
     clear_screen();
-    refresh_curr_acc();
+    refresh_curr_acc(ds_lck);
     printf("Hello, %s\n", curr_acc->name);
     printf("Current balance: %f\n", curr_acc->balance);
     printf("\t1. Transfer money\n");
@@ -131,12 +133,12 @@ u_long gen_id()
     return res;
 }
 
-int get_all_acc(account *accounts[])
+int get_all_acc(account *accounts[], ds_lock * ds_lck)
 {
     account acc;
     FILE *infile;
     int i = 0;
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -148,17 +150,16 @@ int get_all_acc(account *accounts[])
         accounts[i++] = &acc;
     }
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     num_accounts = i;
     return i;
 }
 
-int set_all_acc(account **accounts)
+int set_all_acc(account **accounts, ds_lock * ds_lck)
 {
-    account acc;
     FILE *infile;
     int i = 0;
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "wb+");
     if (infile == NULL)
     {
@@ -172,13 +173,12 @@ int set_all_acc(account **accounts)
     }
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     return 0;
 }
 
 int print_all_accounts(account **accounts)
 {
-    account acc;
     int i = 0;
 
     for (i = 0; i < num_accounts; i++)
@@ -189,7 +189,7 @@ int print_all_accounts(account **accounts)
     return 0;
 }
 
-int create_account()
+int create_account(ds_lock * ds_lck)
 {
     account acc;
     FILE *infile;
@@ -208,7 +208,7 @@ int create_account()
     acc.balance = 0;
     acc.id = gen_id();
 
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "ab+");
     if (infile == NULL)
     {
@@ -218,17 +218,17 @@ int create_account()
     fwrite(&acc, sizeof(account), 1, infile);
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     printf("Account Created\n");
     sleep(2);
     return 0;
 }
 
-int transfer()
+int transfer(ds_lock * ds_lck)
 {
     account acc;
     FILE *infile;
-    int i = 0, j = 0, transfer_from_i = -1, transfer_to_i = -1, bal_flag = 0;
+    int i = 0, j = 0, transfer_from_i = -1, transfer_to_i = -1;
 
     float amount = 0.0;
     char name[20];
@@ -236,7 +236,7 @@ int transfer()
     scanf("%f", &amount);
     printf("Enter username to transfer: ");
     scanf("%s", name);
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -289,10 +289,10 @@ int transfer()
     }
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     return 0;
 }
-int withdraw()
+int withdraw(ds_lock * ds_lck)
 {
     account acc;
     FILE *infile;
@@ -300,7 +300,7 @@ int withdraw()
     float amount = 0.0;
     printf("Enter amount to withdraw: ");
     scanf("%f", &amount);
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -333,7 +333,7 @@ int withdraw()
     }
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     if (done == 1)
         printf("Withdraw successful!\n");
     else
@@ -341,7 +341,7 @@ int withdraw()
     sleep(2);
     return done;
 }
-int deposit()
+int deposit(ds_lock * ds_lck)
 {
     account acc;
     FILE *infile;
@@ -349,7 +349,7 @@ int deposit()
     float amount = 0.0;
     printf("Enter amount to deposit: ");
     scanf("%f", &amount);
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -380,7 +380,7 @@ int deposit()
     }
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
     return 0;
 }
 int logout()
@@ -390,12 +390,10 @@ int logout()
     return 0;
 }
 
-int login()
+int login(ds_lock * ds_lck)
 {
     account acc;
-    account *all_accs_ptr = all_accs;
     FILE *infile;
-    unsigned short i;
     char name[20], password[20];
     printf("Logging into account\n");
     fflush(stdout);
@@ -409,7 +407,7 @@ int login()
     fgets(password, sizeof(password), stdin);
     password[strcspn(password, "\n")] = '\0';
 
-    // TODO: Entering CS
+    dsm_lock(ds_lck);
     infile = fopen(ACCOUNTS_FILE, "rb+");
     if (infile == NULL)
     {
@@ -438,19 +436,19 @@ int login()
     }
 
     fclose(infile);
-    // TODO: Exiting CS
+    dsm_unlock(ds_lck);
 
     int choice;
-    while ((choice = login_loop()) != 0)
+    while ((choice = login_loop(ds_lck)) != 0)
     {
         if (choice == 1)
-            transfer();
+            transfer(ds_lck);
         else if (choice == 2)
         {
-            withdraw();
+            withdraw(ds_lck);
         }
         else if (choice == 3)
-            deposit();
+            deposit(ds_lck);
         else if (choice == 0)
         {
             logout();
@@ -473,20 +471,24 @@ void handle_sigint(int sig)
 // Driver program
 int main()
 {
-    FILE *infile;
     int choice;
+    
+    ds_lock *ds_lck = malloc(sizeof(ds_lock));
+    dsm_init(ds_lck);
 
     check_file(ACCOUNTS_FILE);
 
     while ((choice = main_menu()) != 0)
     {
         if (choice == 1)
-            create_account();
+            create_account(ds_lck);
         else if (choice == 2)
-            login();
+            login(ds_lck);
         else if (choice == 0)
             break;
     }
+
+    dsm_destroy(ds_lck);
 
     // if (logged_in == 1)
     //     free(curr_acc);
