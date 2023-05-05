@@ -464,6 +464,7 @@ int dsm_lock(ds_lock *ds_lck)
     ds_lck->requesting = 0;
     // CLOCK: Updating
     ds_lck->lamport_clock += 1;
+    write_msg("Clock updated", NULL, ds_lck);
 
     return 0;
 }
@@ -482,6 +483,7 @@ int dsm_unlock(ds_lock *ds_lck)
     ds_lck->active_hosts = read_ip_from_file(ds_lck->file_name, ds_lck->ip_ids);
     // CLOCK: Updating
     ds_lck->lamport_clock += 1;
+    write_msg("Clock updated", NULL, ds_lck);
 
     // TODO: Check deferred array and send REPLY to pending processes
     for (int i = 0; i < ds_lck->active_hosts; i++)
