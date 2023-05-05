@@ -7,4 +7,5 @@
 *.o
 !Makefile
 test_*.c
+test_*
 *.log
