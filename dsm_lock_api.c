@@ -200,7 +200,7 @@ void *network_thread(void *arg)
     ds_lck = (ds_lock *)arg;
     ds_lck->should_listen = 1;
 
-    write_msg("Thread started", NULL, ds_lck);
+    write_msg("Network thread started", NULL, ds_lck);
 
     msg_pkt packet;
     for (;;)
@@ -347,7 +347,7 @@ void *network_thread(void *arg)
         fflush(stdout);
     }
 
-    write_msg("Thread exited", NULL, ds_lck);
+
     pthread_exit(NULL);
 }
 
@@ -536,10 +536,7 @@ int dsm_destroy(ds_lock *ds_lck)
     {
         pthread_cancel(ds_lck->tid);
     }
-    else
-    {
-        // printf("Thread is not running.\n");
-    }
+    write_msg("Network thread killed", NULL, ds_lck);
     free(ds_lck->file_name);
     for (int i = 0; i < ds_lck->active_hosts; i++)
     {
