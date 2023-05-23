@@ -36,3 +36,30 @@ int main(int argc, char *argv[]){
     return 0;
 }
 ```
+---
+## More information
+
+The system given below share the $HOME directory. The grey color indicate that the machines currently do not use the `dsm_lock_api`.
+
+<center><img src="images/all_idle.png" width="500" height="175" style="background: white"></center><br><br>
+
+### *dsm_init()*
+When a program calls the `dsm_init()` function the IP address of the current machine is added to the `$HOME/process.hosts` file. The blue machines means that other machines now know each other blue machine.
+
+<center><img src="images/all_idle_init.gif" width="500" height="250" style="background: white"></center><br><br>
+
+### *dsm_lock()*
+#### Scenario 1:
+Machine `C` calls the `dsm_lock()` function. A packet with type `REQUEST` is sent from machine `C` to `A`, `D`, `E` and machine `C` waits till a `REPLY` packet is received from every machine. 
+
+<center><img src="images/all_idle_REQ.gif" width="500" height="250" style="background: white"></center><br>
+
+### Scenario 2:
+Now, if machine `C` currently holds the lock and machine `D` wants the lock, machine `D` simply sends a `REQUEST` packet to all other machines and waits till the `REPLY` packet is received.
+> The following GIF shows that machine `C` does not send a `REPLY` packet until it releases the lock (using the `dsm_unlock()`).
+
+<center><img src="images/busy_REQ.gif" width="500" height="250" style="background: white"></center><br>
+
+### *dsm_destroy()* (Unimplemented: See issue [#3](https://github.com/Ansh743/distributed-mutex-lock/issues/3))
+Remove the current machine's IP address and reorder the index also notify other hosts that a machine went offline.
+<center><img src="images/all_idle_destroy.gif" width="500" height="250" style="background: white"></center><br>
