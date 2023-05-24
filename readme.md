@@ -36,6 +36,13 @@ int main(int argc, char *argv[]){
     return 0;
 }
 ```
+## Compilation
+
+Use the following command to compile `my_prog.c` which uses the `dsm_lock_api.c`.
+```sh
+$ gcc -o my_prog my_prog.c dsm_lock_api.c -lpthread
+```
+> Note: make sure to use `-lpthread` flag to link the pthread library
 ---
 ## More information
 
@@ -63,3 +70,4 @@ Now, if machine `C` currently holds the lock and machine `D` wants the lock, mac
 ### *dsm_destroy()* (Unimplemented: See issue [#3](https://github.com/Ansh743/distributed-mutex-lock/issues/3))
 Remove the current machine's IP address and reorder the index also notify other hosts that a machine went offline.
 <center><img src="images/all_idle_destroy.gif" width="500" height="250" style="background: white"></center><br>
+
